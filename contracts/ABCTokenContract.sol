@@ -148,7 +148,7 @@ contract Pausable is Ownable {
     /**
     * @dev modifier to allow actions only when the contract IS NOT paused
     */
-    modifier whenPaused {
+    modifier whenPaused() {
         require(paused);
         _;
     }
@@ -173,8 +173,54 @@ contract Pausable is Ownable {
 }
 // ================= Pausable Token Contract end ========================
 
+// ================= Trading Token Contract start =======================
+/**
+ * Allow token can be transfer from address to address (trading-able)
+ */
+contract Trading is Ownable {
+    event EnableTrading();
+    event DisableTrading();
+
+    bool public startTrading = false;
+
+    /**
+    * modifier to allow actions only when the contract stops trading
+    */
+    modifier whenDisableTrading() {
+        require(!startTrading);
+        _;
+    }
+
+    /**
+    * modifier to allow actions only when the contract starts trading
+    */
+    modifier whenEnableTrading() {
+        require(startTrading);
+        _;
+    }
+
+    /**
+    * called by the owner to stop trading
+    */
+    function disableTrading() onlyOwner whenEnableTrading returns (bool) {
+        startTrading = false;
+        DisableTrading();
+        return true;
+    }
+
+    /**
+    * called by the owner to start trading
+    */
+    function enableTrading() onlyOwner whenDisableTrading returns (bool) {
+        startTrading = true;
+        EnableTrading();
+        return true;
+    }
+}
+// ================= Trading Token Contract end =========================
+
 // ================= ABCToken contract start ============================
-contract ABCToken is SafeMath, StandardToken, Pausable {
+contract ABCToken is SafeMath, StandardToken, Pausable, Trading {
     string public name;
     string public symbol;
     uint256 public decimals;
@@ -218,6 +264,14 @@ contract ABCToken is SafeMath, StandardToken, Pausable {
 
         Transfer(0x0, owner, _value);
         Transfer(owner, _recipient, _value);
+        return true;
+    }
+
+    // Checks modifier and allows transfer if startTrading is true
+    function transferFrom(address _from, address _to, uint _value) whenEnableTrading returns (bool success) {
+        assert(_value > 0);
+        super.approve(_from, _value);
+        Transfer(_from, _to, _value);
         return true;
     }
 }
