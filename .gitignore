@@ -1,0 +1,20 @@
+# IDE & DevelopmentTool
+/.idea
+/nbproject/private/
+/nbproject/
+/vagrant/.vagrant
+/.bundle
+/pimple.json
+composer.lock
+node_modules/
+build/
+.project
+.settings
+
+# OS
+.DS_Store
+sh.exe.stackdump
+
+# logs & tmp file
+*.swp
+!.gitkeep
