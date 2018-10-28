@@ -82,7 +82,7 @@ contract ERC20 {
 contract StandardToken is ERC20, SafeMath {
 
     /**
-     * @dev Fix for the ERC20 short address attack.
+     * Fix for the ERC20 short address attack.
      */
     modifier onlyPayloadSize(uint size) {
         require(msg.data.length >= size + 4);
@@ -128,7 +128,7 @@ contract StandardToken is ERC20, SafeMath {
 // ================= Pausable Token Contract start ======================
 /**
  * @title Pausable
- * @dev Base contract which allows children to implement an emergency stop mechanism.
+ * Base contract which allows children to implement an emergency stop mechanism.
  */
 contract Pausable is Ownable {
     event Pause();
@@ -138,7 +138,7 @@ contract Pausable is Ownable {
 
 
     /**
-    * @dev modifier to allow actions only when the contract IS paused
+    * modifier to allow actions only when the contract IS paused
     */
     modifier whenNotPaused() {
         require(!paused);
@@ -146,7 +146,7 @@ contract Pausable is Ownable {
     }
 
     /**
-    * @dev modifier to allow actions only when the contract IS NOT paused
+    * modifier to allow actions only when the contract IS NOT paused
     */
     modifier whenPaused() {
         require(paused);
@@ -154,7 +154,7 @@ contract Pausable is Ownable {
     }
 
     /**
-    * @dev called by the owner to pause, triggers stopped state
+    * called by the owner to pause, triggers stopped state
     */
     function pause() onlyOwner whenNotPaused returns (bool) {
         paused = true;
@@ -163,7 +163,7 @@ contract Pausable is Ownable {
     }
 
     /**
-    * @dev called by the owner to unpause, returns to normal state
+    * called by the owner to unpause, returns to normal state
     */
     function unpause() onlyOwner whenPaused returns (bool) {
         paused = false;
@@ -173,58 +173,13 @@ contract Pausable is Ownable {
 }
 // ================= Pausable Token Contract end ========================
 
-// ================= Trading Token Contract start =======================
-/**
- * Allow token can be transfer from address to address (trading-able)
- */
-contract Trading is Ownable {
-    event EnableTrading();
-    event DisableTrading();
-
-    bool public startTrading = false;
-
-    /**
-    * modifier to allow actions only when the contract stops trading
-    */
-    modifier whenDisableTrading() {
-        require(!startTrading);
-        _;
-    }
-
-    /**
-    * modifier to allow actions only when the contract starts trading
-    */
-    modifier whenEnableTrading() {
-        require(startTrading);
-        _;
-    }
-
-    /**
-    * called by the owner to stop trading
-    */
-    function disableTrading() onlyOwner whenEnableTrading returns (bool) {
-        startTrading = false;
-        DisableTrading();
-        return true;
-    }
-
-    /**
-    * called by the owner to start trading
-    */
-    function enableTrading() onlyOwner whenDisableTrading returns (bool) {
-        startTrading = true;
-        EnableTrading();
-        return true;
-    }
-}
-// ================= Trading Token Contract end =========================
-
 // ================= ABCToken contract start ============================
-contract ABCToken is SafeMath, StandardToken, Pausable, Trading {
+contract ABCToken is SafeMath, StandardToken, Pausable {
     string public name;
     string public symbol;
     uint256 public decimals;
     address public icoContract;
+    bool public startTrading = false;
 
     function ABCToken(
         string _name,
@@ -237,7 +192,26 @@ contract ABCToken is SafeMath, StandardToken, Pausable, Trading {
         decimals = _decimals;
     }
 
+    /**
+    * called by the owner to disable trading
+    */
+    function disableTrading() onlyOwner returns (bool) {
+        startTrading = false;
+        return true;
+    }
+
+    /**
+    * called by the owner to enable trading
+    */
+    function enableTrading() onlyOwner returns (bool) {
+        startTrading = true;
+        return true;
+    }
+
     function transfer(address _to, uint _value) whenNotPaused returns (bool success) {
+        if (msg.sender != address(0)) {
+            require(startTrading);
+        }
         return super.transfer(_to,_value);
     }
 
@@ -266,14 +240,6 @@ contract ABCToken is SafeMath, StandardToken, Pausable, Trading {
         Transfer(owner, _recipient, _value);
         return true;
     }
-
-    // Checks modifier and allows transfer if startTrading is true
-    function transferFrom(address _from, address _to, uint _value) whenEnableTrading returns (bool success) {
-        assert(_value > 0);
-        super.approve(_from, _value);
-        Transfer(_from, _to, _value);
-        return true;
-    }
 }
 // ================= ABCToken contract end ==============================
 
@@ -287,7 +253,6 @@ contract ABCTokenContract is SafeMath, Pausable {
     address public ethFundDeposit;
     address public icoAddress;
 
-    bool public isFinalized;
     uint256 public tokenExchangeRate;
 
     event LogCreateICO(address from, address to, uint256 val);
@@ -309,17 +274,15 @@ contract ABCTokenContract is SafeMath, Pausable {
         tokenCreationCap = _tokenCreationCap;
         tokenExchangeRate = _tokenExchangeRate;
         ico = ABCToken(icoAddress);
-        isFinalized = false;
     }
 
     function () payable {
         createTokens(msg.sender, msg.value);
     }
 
-    /// @dev Accepts ether and creates new ICO tokens.
+    /// accepts ETH and creates new ICO tokens.
     function createTokens(address _beneficiary, uint256 _value) internal whenNotPaused {
         require (tokenCreationCap > totalSupply);
-        require (!isFinalized);
 
         uint256 tokens = safeMult(_value, tokenExchangeRate);
         uint256 checkedSupply = safeAdd(totalSupply, tokens);
@@ -339,14 +302,6 @@ contract ABCTokenContract is SafeMath, Pausable {
         totalSupply = checkedSupply;
 
         require(CreateICO(_beneficiary, tokens));
-        ethFundDeposit.transfer(this.balance);
-    }
-
-    /// @dev Ends the funding period and sends the ETH home
-    function finalize() external onlyOwner {
-        require (!isFinalized);
-        // move to operational
-        isFinalized = true;
         ethFundDeposit.transfer(this.balance);
     }
 }
