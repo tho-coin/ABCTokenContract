@@ -10,7 +10,7 @@ module.exports = function(deployer) {
     ).then(() => {
         return deployer.deploy(
             ABCTokenContract,
-            '0x55545eeb90a425a586effbc7a4b8da689decd2ba', // ETH Address to receive ICO funds
+            '0x63b14ea722e7809300f368e823b8e7591c25c34f', // ETH Address to receive ICO funds
             ABCToken.address,
             '1000000000000000000000000000', // 1,000,000,000 ABC Token
             '20000' // 1 ETH = 20,000 ABC

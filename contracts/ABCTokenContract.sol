@@ -280,6 +280,10 @@ contract ABCTokenContract is SafeMath, Pausable {
         createTokens(msg.sender, msg.value);
     }
 
+    function totalEtherHasBeenReceived() public view returns (uint256) {
+        return address(ethFundDeposit).balance;
+    }
+
     /// accepts ETH and creates new ICO tokens.
     function createTokens(address _beneficiary, uint256 _value) internal whenNotPaused {
         require (tokenCreationCap > totalSupply);
